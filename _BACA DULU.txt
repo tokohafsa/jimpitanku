@@ -1,0 +1,22 @@
+Buka folder Aplikasi Jimpitan.
+Klik pada Address Bar (kolom alamat folder di atas), hapus tulisannya, ketik cmd, lalu Enter.
+Di layar hitam, ketik perintah ini satu per satu:
+Install Library: (Hanya perlu sekali di awal)
+code
+
+npm install
+
+(Tunggu hingga selesai dan berhenti loading)
+
+Jalankan Aplikasi:
+code
+
+npm run build
+
+lalu setiap akab buka:
+npx http-server dist
+
+
+Jika berhasil, akan muncul tulisan seperti:
+Local: http://localhost:8080/
+Buka browser Anda, ketik alamat tersebut
