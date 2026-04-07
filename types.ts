@@ -4,6 +4,7 @@ export interface Member {
   name: string;
   joinDate: string; // Internal use only
   status: MemberStatus;
+  notes?: string;
 }
 
 export enum MemberStatus {

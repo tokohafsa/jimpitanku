@@ -38,6 +38,12 @@ const App: React.FC = () => {
     saveMembers(updatedMembers);
   };
 
+  const handleUpdateMember = (updatedMember: Member) => {
+    const updatedMembers = members.map(m => m.id === updatedMember.id ? updatedMember : m);
+    setMembers(updatedMembers);
+    saveMembers(updatedMembers);
+  };
+
   const handleBulkAddMembers = (newMembers: Member[]) => {
     const updatedMembers = [...members, ...newMembers];
     setMembers(updatedMembers);
@@ -203,6 +209,7 @@ const App: React.FC = () => {
             onAddArrear={handleAddArrear}
             onPayArrear={handlePayArrear}
             onPayMemberDebt={handlePayMemberDebt}
+            onUpdateMember={handleUpdateMember}
             onAddMember={handleAddMember}
             // Pass new props
             onDeleteHistoryItem={handleDeleteHistoryItem}
@@ -277,6 +284,7 @@ const App: React.FC = () => {
             onAddArrear={handleAddArrear}
             onPayArrear={handlePayArrear}
             onPayMemberDebt={handlePayMemberDebt}
+            onUpdateMember={handleUpdateMember}
             onAddMember={handleAddMember}
             onDeleteHistoryItem={handleDeleteHistoryItem}
           />

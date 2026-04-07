@@ -1,6 +1,6 @@
 
-import React, { useRef, useState } from 'react';
-import { getFullDatabase, restoreFullDatabase } from '../services/storageService';
+import React, { useRef, useState, useEffect } from 'react';
+import { getFullDatabase, restoreFullDatabase, getLastBackup, saveLastBackup } from '../services/storageService';
 import { Save, FolderOpen, Database, AlertCircle, CheckCircle, Info, FileText, ArrowRight } from 'lucide-react';
 
 export const BackupView: React.FC = () => {
@@ -28,6 +28,7 @@ export const BackupView: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      
       setNotification({
         type: 'success',
         message: 'Database berhasil di-download! Simpan file ini di tempat yang aman.'
@@ -54,9 +55,15 @@ export const BackupView: React.FC = () => {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
 
-        // Validasi struktur dasar
-        if (!Array.isArray(data.members) || !Array.isArray(data.arrears)) {
-          throw new Error("Format file tidak valid.");
+        // Validasi struktur mendalam
+        if (!data || typeof data !== 'object') throw new Error("File bukan JSON yang valid.");
+        if (!Array.isArray(data.members)) throw new Error("Data 'members' tidak ditemukan.");
+        if (!Array.isArray(data.arrears)) throw new Error("Data 'arrears' tidak ditemukan.");
+        
+        // Validasi minimal isi data
+        if (data.members.length > 0) {
+          const firstMember = data.members[0];
+          if (!firstMember.id || !firstMember.name) throw new Error("Format data anggota tidak valid.");
         }
 
         // Set Preview

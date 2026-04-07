@@ -5,6 +5,7 @@ const MEMBERS_KEY = 'IURAN_APP_MEMBERS_V2';
 const ARREARS_KEY = 'IURAN_APP_ARREARS_V2';
 const SCHEDULES_KEY = 'IURAN_APP_SCHEDULES_V1';
 const BATCH_HISTORY_KEY = 'IURAN_APP_BATCH_HISTORY_V1';
+const LAST_BACKUP_KEY = 'IURAN_APP_LAST_BACKUP_V1';
 
 export const getMembers = (): Member[] => {
   const data = localStorage.getItem(MEMBERS_KEY);
@@ -52,6 +53,14 @@ export const getBatchHistory = (): BatchRecord[] => {
 
 export const saveBatchHistory = (history: BatchRecord[]) => {
   localStorage.setItem(BATCH_HISTORY_KEY, JSON.stringify(history));
+};
+
+export const getLastBackup = (): string | null => {
+  return localStorage.getItem(LAST_BACKUP_KEY);
+};
+
+export const saveLastBackup = (date: string) => {
+  localStorage.setItem(LAST_BACKUP_KEY, date);
 };
 
 // --- NEW: BACKUP & RESTORE FUNCTIONS ---

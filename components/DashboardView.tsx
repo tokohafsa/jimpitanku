@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Member, Arrear, MeetingSchedule, MemberStatus } from '../types';
-import { Search, X, Plus, History, Wallet, User, Hash, Calculator, Coins, AlertCircle, CalendarDays, ArrowUpRight, ArrowDownLeft, ChevronDown, Trash2, CheckCircle } from 'lucide-react';
+import { Search, X, Plus, History, Wallet, User, Hash, Calculator, Coins, AlertCircle, CalendarDays, ArrowUpRight, ArrowDownLeft, ChevronDown, Trash2, CheckCircle, Save, FileText } from 'lucide-react';
 
 interface DashboardProps {
   members: Member[];
@@ -10,6 +10,7 @@ interface DashboardProps {
   onAddArrear: (arrear: Arrear) => void;
   onPayArrear: (id: string, date: string) => void;
   onPayMemberDebt: (memberId: string, date: string, amount: number) => void;
+  onUpdateMember: (member: Member) => void;
   onAddMember: (member: Member) => void;
   onDeleteHistoryItem?: (item: any) => void;
   initialMemberId?: string | null;
@@ -35,6 +36,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
   onAddArrear, 
   onPayArrear, 
   onPayMemberDebt,
+  onUpdateMember,
   onDeleteHistoryItem,
   initialMemberId,
   onClearInitialMemberId,
@@ -57,6 +59,9 @@ export const DashboardView: React.FC<DashboardProps> = ({
   // State for Confirmations
   const [isAddConfirmOpen, setIsAddConfirmOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<any | null>(null);
+  const [memberNotes, setMemberNotes] = useState<string>('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   
   // Helper to find meeting host based on date
   const getMeetingLocation = (dateString: string): string => {
@@ -137,7 +142,10 @@ export const DashboardView: React.FC<DashboardProps> = ({
   useEffect(() => {
     if (selectedMemberStats) {
       const updated = memberStats.find(m => m.id === selectedMemberStats.id);
-      if (updated) setSelectedMemberStats(updated);
+      if (updated) {
+        setSelectedMemberStats(updated);
+        setMemberNotes(updated.notes || '');
+      }
     }
   }, [memberStats]);
 
@@ -147,6 +155,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
       const target = memberStats.find(m => m.id === initialMemberId);
       if (target) {
         setSelectedMemberStats(target);
+        setMemberNotes(target.notes || '');
         onClearInitialMemberId?.();
       }
     }
@@ -324,6 +333,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
     const newStats = memberStats.find(m => m.id === memberId);
     if (newStats) {
       setSelectedMemberStats(newStats);
+      setMemberNotes(newStats.notes || '');
       setAddCount('');
       setAddDate(new Date().toISOString().split('T')[0]);
     }
@@ -339,6 +349,22 @@ export const DashboardView: React.FC<DashboardProps> = ({
         onDeleteHistoryItem(deleteItem);
         setDeleteItem(null);
     }
+  };
+
+  const handleSaveNotes = () => {
+    if (!selectedMemberStats || !onUpdateMember) return;
+    setIsSavingNotes(true);
+    
+    const updatedMember: Member = {
+      ...members.find(m => m.id === selectedMemberStats.id)!,
+      notes: memberNotes
+    };
+    
+    onUpdateMember(updatedMember);
+    
+    setTimeout(() => {
+      setIsSavingNotes(false);
+    }, 500);
   };
 
   // --- VALIDATION LOGIC ---
@@ -603,6 +629,38 @@ export const DashboardView: React.FC<DashboardProps> = ({
 
             <div className="overflow-y-auto p-6 space-y-8">
               
+              {/* SECTION: NOTES */}
+              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <FileText size={16} /> Catatan Khusus
+                  </h4>
+                  <button 
+                    onClick={handleSaveNotes}
+                    disabled={isSavingNotes || memberNotes === (selectedMemberStats.notes || '')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
+                      isSavingNotes 
+                        ? 'bg-emerald-100 text-emerald-600' 
+                        : memberNotes !== (selectedMemberStats.notes || '')
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSavingNotes ? (
+                      <><div className="w-3 h-3 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div> Menyimpan...</>
+                    ) : (
+                      <><Save size={14} /> Simpan Catatan</>
+                    )}
+                  </button>
+                </div>
+                <textarea 
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white min-h-[80px] resize-none placeholder:italic placeholder:text-slate-400"
+                  placeholder="Contoh: Sering bayar di akhir bulan, atau catatan lainnya..."
+                  value={memberNotes}
+                  onChange={(e) => setMemberNotes(e.target.value)}
+                />
+              </div>
+
               {/* SECTION 1: ADD ARREAR (Moved to Top) */}
               <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
                 <h4 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
@@ -616,7 +674,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
                     </label>
                     <input 
                       type="date" 
-                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer ${isAddDateInvalid ? 'bg-red-50 border-red-300 text-red-700' : 'bg-slate-100 border-indigo-200 text-slate-700'}`}
+                      className={`w-full px-3 h-10 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer ${isAddDateInvalid ? 'bg-red-50 border-red-300 text-red-700' : 'bg-slate-100 border-indigo-200 text-slate-700'}`}
                       value={addDate}
                       onChange={(e) => setAddDate(e.target.value)}
                       required
@@ -629,21 +687,21 @@ export const DashboardView: React.FC<DashboardProps> = ({
                       type="number" 
                       min="1"
                       placeholder="0"
-                      className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-100"
+                      className="w-full px-3 h-10 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-100"
                       value={addCount}
                       onChange={(e) => setAddCount(e.target.value)}
                     />
                   </div>
                   <div className="flex-1 w-full">
                     <label className="block text-xs font-medium text-indigo-700 mb-1">Total (Rp)</label>
-                    <div className="w-full px-3 py-2 bg-white/50 border border-indigo-200 rounded-lg text-sm text-indigo-900 font-medium">
+                    <div className="w-full px-3 h-10 flex items-center bg-white/50 border border-indigo-200 rounded-lg text-sm text-indigo-900 font-medium">
                       Rp {(parseInt(addCount || '0') * 500).toLocaleString('id-ID')}
                     </div>
                   </div>
                   <button 
                     type="submit" 
                     disabled={!addCount || parseInt(addCount) <= 0 || isAddDateInvalid}
-                    className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto px-4 h-10 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Simpan
                   </button>
@@ -710,79 +768,87 @@ export const DashboardView: React.FC<DashboardProps> = ({
 
               {/* SECTION 3: HISTORY */}
               <div>
-                <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <History size={16} /> Riwayat
-                </h4>
-                {/* Added max-h-[300px] and overflow-y-auto for scrolling approx 5 items */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden max-h-[300px] overflow-y-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3 bg-slate-50">Tanggal</th>
-                        <th className="px-4 py-3 bg-slate-50">Lokasi</th>
-                        <th className="px-4 py-3 text-center bg-slate-50">Mutasi</th>
-                        <th className="px-4 py-3 text-right bg-slate-50">Nominal</th>
-                        <th className="px-4 py-3 text-center bg-slate-50">Status</th>
-                        {/* Actions Column - Now only Delete */}
-                        <th className="px-4 py-3 text-center bg-slate-50 w-24">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {historyEvents.length > 0 ? (
-                        historyEvents.map((hist: any, index: number) => (
-                          <tr key={hist.id}>
-                            <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{formatDate(hist.date)}</td>
-                            <td className="px-4 py-3 text-slate-500 text-xs">
-                                {hist.location}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                               <div className={`inline-block px-2 py-1 rounded-md text-xs font-bold border ${hist.mutationClass}`}>
-                                  {hist.mutationLabel}
-                               </div>
-                            </td>
-                             <td className="px-4 py-3 text-right font-medium text-slate-800">
-                               {hist.amountLabel}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center justify-center gap-1 ${
-                                hist.type === 'PELUNASAN' 
-                                  ? 'bg-emerald-100 text-emerald-700' 
-                                  : 'bg-red-50 text-red-600 border border-red-100'
-                              }`}>
-                                {hist.type === 'PELUNASAN' ? (
-                                    <><ArrowUpRight size={10} /> LUNAS</>
-                                ) : (
-                                    <><ArrowDownLeft size={10} /> TAGIHAN</>
-                                )}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                               <div className="flex items-center justify-center gap-1">
-                                  {/* Delete Button - Only enabled for the LATEST item (index 0) */}
-                                  <button 
-                                    onClick={() => index === 0 && handleDeleteClick(hist)}
-                                    disabled={index !== 0}
-                                    className={`p-1.5 rounded transition-colors ${
-                                        index === 0 
-                                            ? 'text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' 
-                                            : 'text-slate-200 cursor-not-allowed'
-                                    }`}
-                                    title={index === 0 ? "Hapus Transaksi Terakhir" : "Hapus transaksi terbaru terlebih dahulu"}
-                                  >
-                                      <Trash2 size={14} />
-                                  </button>
-                               </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={6} className="p-4 text-center text-slate-400">Belum ada riwayat transaksi.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <History size={16} /> Riwayat
+                  </h4>
+                  <button 
+                    onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 transition-colors"
+                  >
+                    {isHistoryExpanded ? (
+                      <>Sembunyikan <ChevronDown size={14} className="rotate-180 transition-transform" /></>
+                    ) : (
+                      <>Lihat Semua <ChevronDown size={14} className="transition-transform" /></>
+                    )}
+                  </button>
                 </div>
+                
+                {isHistoryExpanded && (
+                  <div className="border border-slate-200 rounded-lg overflow-hidden max-h-[400px] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-4 py-3 bg-slate-50">Tanggal</th>
+                          <th className="px-4 py-3 bg-slate-50">Lokasi</th>
+                          <th className="px-4 py-3 text-center bg-slate-50">Mutasi</th>
+                          <th className="px-4 py-3 text-right bg-slate-50">Nominal</th>
+                          <th className="px-4 py-3 text-center bg-slate-50">Status</th>
+                          <th className="px-4 py-3 text-center bg-slate-50 w-24">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {historyEvents.length > 0 ? (
+                          historyEvents.map((hist: any, index: number) => (
+                            <tr key={hist.id}>
+                              <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{formatDate(hist.date)}</td>
+                              <td className="px-4 py-3 text-slate-500 text-xs">{hist.location}</td>
+                              <td className="px-4 py-3 text-center">
+                                <div className={`inline-block px-2 py-1 rounded-md text-xs font-bold border ${hist.mutationClass}`}>
+                                  {hist.mutationLabel}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium text-slate-800">{hist.amountLabel}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center justify-center gap-1 ${
+                                  hist.type === 'PELUNASAN' 
+                                    ? 'bg-emerald-100 text-emerald-700' 
+                                    : 'bg-red-50 text-red-600 border border-red-100'
+                                }`}>
+                                  {hist.type === 'PELUNASAN' ? (
+                                      <><ArrowUpRight size={10} /> LUNAS</>
+                                  ) : (
+                                      <><ArrowDownLeft size={10} /> TAGIHAN</>
+                                  )}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                 <div className="flex items-center justify-center gap-1">
+                                    <button 
+                                      onClick={() => index === 0 && handleDeleteClick(hist)}
+                                      disabled={index !== 0}
+                                      className={`p-1.5 rounded transition-colors ${
+                                          index === 0 
+                                              ? 'text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' 
+                                              : 'text-slate-200 cursor-not-allowed'
+                                      }`}
+                                      title={index === 0 ? "Hapus Transaksi Terakhir" : "Hapus transaksi terbaru terlebih dahulu"}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                 </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="p-4 text-center text-slate-400">Belum ada riwayat transaksi.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           </div>
