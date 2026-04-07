@@ -147,7 +147,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
         setMemberNotes(updated.notes || '');
       }
     }
-  }, [memberStats]);
+  }, [memberStats, selectedMemberStats?.id]);
 
   // Handle initialMemberId from props
   useEffect(() => {
@@ -260,6 +260,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
 
   const handleCloseDetail = () => {
     setSelectedMemberStats(null);
+    setIsHistoryExpanded(false);
     onCloseDetail?.();
   };
 
@@ -336,6 +337,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
       setMemberNotes(newStats.notes || '');
       setAddCount('');
       setAddDate(new Date().toISOString().split('T')[0]);
+      setIsHistoryExpanded(false);
     }
   };
 
