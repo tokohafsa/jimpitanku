@@ -13,6 +13,7 @@ interface MemberViewProps {
   onBulkAddMembers: (members: Member[]) => void;
   onBulkAddArrears: (arrears: Arrear[]) => void;
   onToggleStatus: (id: string) => void;
+  onMemberClick: (memberId: string) => void;
 }
 
 export const MemberView: React.FC<MemberViewProps> = ({ 
@@ -23,7 +24,8 @@ export const MemberView: React.FC<MemberViewProps> = ({
   onAddArrear,
   onBulkAddMembers,
   onBulkAddArrears,
-  onToggleStatus
+  onToggleStatus,
+  onMemberClick
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,9 +38,6 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
   // Status Confirmation State
   const [statusConfirmMember, setStatusConfirmMember] = useState<Member | null>(null);
-
-  // Detail Member State
-  const [detailMember, setDetailMember] = useState<Member | null>(null);
   
   // Form State
   const [newName, setNewName] = useState('');
@@ -275,7 +274,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
                         <User size={14} />
                       </div>
                       <button
-                        onClick={() => setDetailMember(member)}
+                        onClick={() => onMemberClick(member.id)}
                         className="text-left font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"
                       >
                         {member.name}
@@ -430,55 +429,6 @@ export const MemberView: React.FC<MemberViewProps> = ({
                 Hapus
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Detail Member Modal */}
-      {detailMember && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600">
-                <User size={28} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800">{detailMember.name}</h3>
-              <span className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-medium ${detailMember.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                {detailMember.status}
-              </span>
-            </div>
-
-            <div className="bg-slate-50 rounded-lg p-4 space-y-2 text-sm mb-6">
-              <div className="flex justify-between">
-                <span className="text-slate-500">ID Anggota</span>
-                <span className="font-mono text-xs text-slate-700">{detailMember.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Total Tunggakan Aktif</span>
-                <span className="font-bold text-red-600">
-                  {arrears.filter(a => a.memberId === detailMember.id && a.status === 'BELUM_LUNAS').length} item
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Total Nominal Tunggakan</span>
-                <span className="font-bold text-red-600">
-                  Rp {arrears.filter(a => a.memberId === detailMember.id && a.status === 'BELUM_LUNAS').reduce((sum, a) => sum + a.amount, 0).toLocaleString('id-ID')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Total Sudah Lunas</span>
-                <span className="font-bold text-emerald-600">
-                  {arrears.filter(a => a.memberId === detailMember.id && a.status === 'LUNAS').length} item
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setDetailMember(null)}
-              className="w-full px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium"
-            >
-              Tutup
-            </button>
           </div>
         </div>
       )}
