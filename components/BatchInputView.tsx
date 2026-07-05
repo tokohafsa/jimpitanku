@@ -368,22 +368,9 @@ export const BatchInputView: React.FC<BatchInputViewProps> = ({ members, onBulkA
                       className={`${rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
                     >
                       <td className={`px-4 py-2.5 sticky left-0 z-20 border-b border-r border-slate-100 ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                        {allDaysLocked ? (
-                          <button
-                            onClick={() => onMemberClick?.(member.id)}
-                            className="text-left font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors truncate max-w-[140px] block"
-                            title="Lihat detail anggota"
-                          >
-                            {member.name}
-                          </button>
-                        ) : (
-                          <span
-                            className="font-medium text-slate-400 truncate max-w-[140px] block cursor-not-allowed"
-                            title="Kunci semua kolom terlebih dahulu untuk navigasi ke anggota"
-                          >
-                            {member.name}
-                          </span>
-                        )}
+                        <span className="font-medium text-slate-700 truncate max-w-[140px] block">
+                          {member.name}
+                        </span>
                       </td>
                       {Array.from({ length: 7 }, (_, dayIndex) => (
                         <td key={dayIndex} className="px-2 py-2 text-center border-b border-slate-100">
