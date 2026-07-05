@@ -1,7 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Member, Arrear, MeetingSchedule, MemberStatus } from '../types';
-import { Search, X, Plus, History, Wallet, User, Hash, Calculator, Coins, AlertCircle, CalendarDays, ArrowUpRight, ArrowDownLeft, ChevronDown, Trash2, CheckCircle, Save, FileText } from 'lucide-react';
+import { Member, Arrear, MeetingSchedule, MemberStatus, BatchRecord } from '../types';
+import { Search, X, Plus, History, Wallet, User, Hash, Calculator, Coins, AlertCircle, CalendarDays, ArrowUpRight, ArrowDownLeft, ChevronDown, Trash2, CheckCircle, Save, FileText, FileDown, MessageSquare } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { getBatchHistory } from '../services/storageService';
 
 interface DashboardProps {
   members: Member[];
@@ -43,6 +46,9 @@ export const DashboardView: React.FC<DashboardProps> = ({
   onCloseDetail
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportTanggal, setExportTanggal] = useState('');
+  const [exportTempat, setExportTempat] = useState('');
   
   // Selected Member for "Detail/Tambah Tunggakan" Modal
   const [selectedMemberStats, setSelectedMemberStats] = useState<any | null>(null);
@@ -397,6 +403,142 @@ export const DashboardView: React.FC<DashboardProps> = ({
     parseInt(payAmount || '0') > payMember.totalDebt ||
     isPayDateInvalid;
 
+  const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // ── HALAMAN 1: Rekap Tunggakan ──
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REKAPAN JIMPITAN KOSONG RT 02', pageWidth / 2, 14, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const sdTanggal = exportTanggal ? exportTanggal.toUpperCase() : '___________________';
+    const tempat = exportTempat ? exportTempat.toUpperCase() : '___________________';
+    doc.text(`S/D TANGGAL : ${sdTanggal}`, 14, 20);
+    doc.text(`TMPT : ${tempat}`, pageWidth / 2 + 5, 20);
+
+    const activeMembers = memberStats.filter(m => m.status === MemberStatus.ACTIVE).sort((a, b) => a.name.localeCompare(b.name));
+
+    const exportData = activeMembers.map((m, idx) => [
+      idx + 1,
+      m.name,
+      m.activeCount > 0 ? m.activeCount : 0,
+      m.activeAmountRp > 0 ? m.activeAmountRp.toLocaleString('id-ID') : 0,
+      ''
+    ]);
+
+    const half = Math.ceil(exportData.length / 2);
+    const leftCol = exportData.slice(0, half);
+    const rightCol = exportData.slice(half);
+    const tableRows = leftCol.map((left, i) => {
+      const right = rightCol[i] || ['', '', '', '', ''];
+      return [...left, ...right];
+    });
+
+    const totalKosong = activeMembers.reduce((sum, m) => sum + m.activeCount, 0);
+    const totalNominal = activeMembers.reduce((sum, m) => sum + m.activeAmountRp, 0);
+
+    autoTable(doc, {
+      startY: 24,
+      head: [['No', 'Nama', 'Kosong', 'Nominal\n(x500)', 'Ket.', 'No', 'Nama', 'Kosong', 'Nominal\n(x500)', 'Ket.']],
+      body: [
+        ...tableRows,
+        [{ content: `TOTAL KOSONG: ${totalKosong}   TOTAL NOMINAL: Rp ${totalNominal.toLocaleString('id-ID')}`, colSpan: 10, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8 } }]
+      ],
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 7, lineWidth: 0.3, lineColor: [0, 0, 0] },
+      bodyStyles: { fontSize: 7, lineWidth: 0.2, lineColor: [180, 180, 180] },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 38 }, 2: { cellWidth: 13, halign: 'center' }, 3: { cellWidth: 18, halign: 'right' }, 4: { cellWidth: 10 },
+        5: { cellWidth: 8, halign: 'center' }, 6: { cellWidth: 38 }, 7: { cellWidth: 13, halign: 'center' }, 8: { cellWidth: 18, halign: 'right' }, 9: { cellWidth: 10 },
+      },
+      theme: 'grid',
+      margin: { left: 10, right: 10 },
+    });
+
+    // ── HALAMAN 2: Batch Input Terakhir ──
+    const batchHistory = getBatchHistory();
+    if (batchHistory.length > 0) {
+      doc.addPage();
+      const lastBatch = batchHistory[0]; // paling terakhir disimpan
+      const batchDate = new Date(lastBatch.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('BATCH INPUT TERBARU', pageWidth / 2, 14, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Tanggal Input: ${batchDate}`, 14, 21);
+
+      const batchRows = lastBatch.details.map((d, idx) => [
+        idx + 1,
+        d.memberName,
+        ...(d.dailyUnits || Array(7).fill(0)).map(v => v > 0 ? v : '-'),
+        d.units,
+        `Rp ${d.amount.toLocaleString('id-ID')}`
+      ]);
+
+      const dayTotals = DAY_NAMES.map((_, i) => lastBatch.details.reduce((sum, d) => sum + (d.dailyUnits?.[i] || 0), 0));
+
+      autoTable(doc, {
+        startY: 25,
+        head: [['No', 'Nama', ...DAY_NAMES, 'Total', 'Nominal']],
+        body: [
+          ...batchRows,
+          ['', 'TOTAL', ...dayTotals.map(v => v > 0 ? v : '-'), lastBatch.totalUnits, `Rp ${lastBatch.totalAmount.toLocaleString('id-ID')}`]
+        ],
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 12, halign: 'center' }, 3: { cellWidth: 12, halign: 'center' },
+          4: { cellWidth: 12, halign: 'center' }, 5: { cellWidth: 12, halign: 'center' },
+          6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 12, halign: 'center' },
+          8: { cellWidth: 12, halign: 'center' }, 9: { cellWidth: 13, halign: 'center' },
+          10: { cellWidth: 22, halign: 'right' },
+        },
+        theme: 'striped',
+        margin: { left: 10, right: 10 },
+      });
+    }
+
+    const tanggalFile = new Date().toISOString().split('T')[0];
+    doc.save(`Rekap_Jimpitan_RT02_${tanggalFile}.pdf`);
+    setShowExportModal(false);
+  };
+
+  const handleExportTXT = () => {
+    const activeMembers = memberStats
+      .filter(m => m.status === MemberStatus.ACTIVE)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const lines = ['*REKAP TUNGGAKAN JIMPITAN TERBARU*', ''];
+    activeMembers.forEach((m, idx) => {
+      const nominal = `Rp${m.activeAmountRp.toLocaleString('id-ID')}`;
+      if (m.activeAmountRp > 0) {
+        lines.push(`${idx + 1}. *Bpk. ${m.name} ${nominal}*`);
+      } else {
+        lines.push(`${idx + 1}. _Bpk. ${m.name} Rp0_`);
+      }
+    });
+    lines.push('');
+    lines.push('Harap dilunasi di pertemuan nanti malam. Terimakasih');
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Rekap_WA_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Search */}
@@ -404,6 +546,22 @@ export const DashboardView: React.FC<DashboardProps> = ({
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Rekap Jimpitan</h2>
           <p className="text-slate-500">Ringkasan status iuran warga</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportTXT}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            <MessageSquare size={16} />
+            Export WA
+          </button>
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <FileDown size={16} />
+            Export PDF Rekap
+          </button>
         </div>
       </div>
 
@@ -852,6 +1010,62 @@ export const DashboardView: React.FC<DashboardProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export PDF Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+                <FileDown size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Export PDF Rekap</h3>
+                <p className="text-xs text-slate-500">Isi keterangan untuk header laporan</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">S/D Tanggal</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Sabtu, 6 Juni 2026"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+                  value={exportTanggal}
+                  onChange={(e) => setExportTanggal(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tempat</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Bpk. M. Hendro"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+                  value={exportTempat}
+                  onChange={(e) => setExportTempat(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="flex-1 px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm"
+              >
+                <FileDown size={16} />
+                Download PDF
+              </button>
             </div>
           </div>
         </div>
