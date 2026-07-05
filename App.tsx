@@ -266,11 +266,6 @@ const App: React.FC = () => {
             members={members}
             onBulkAddArrears={handleBulkAddArrears}
             onDeleteBatchArrears={handleDeleteBatchArrears}
-            onMemberClick={(id) => {
-              setInitialSelectedMemberId(id);
-              setReturnViewAfterDetail('BATCH_INPUT');
-              setCurrentView('DASHBOARD');
-            }}
           />
         );
       case 'BACKUP':
