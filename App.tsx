@@ -234,6 +234,11 @@ const App: React.FC = () => {
             onBulkAddMembers={handleBulkAddMembers}
             onBulkAddArrears={handleBulkAddArrears}
             onToggleStatus={handleToggleMemberStatus}
+            onMemberClick={(id) => {
+              setInitialSelectedMemberId(id);
+              setReturnViewAfterDetail('MEMBERS');
+              setCurrentView('DASHBOARD');
+            }}
           />
         );
       case 'HISTORY':
