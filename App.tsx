@@ -18,18 +18,14 @@ import {
 const App: React.FC = () => {
   // Requirement: Halaman awal yang tampil adalah Backup & Restore
   const [currentView, setCurrentView] = useState<ViewState>('BACKUP');
+  const [isDatabaseLoaded, setIsDatabaseLoaded] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [arrears, setArrears] = useState<Arrear[]>([]);
   const [schedules, setSchedules] = useState<MeetingSchedule[]>([]);
   const [initialSelectedMemberId, setInitialSelectedMemberId] = useState<string | null>(null);
   const [returnViewAfterDetail, setReturnViewAfterDetail] = useState<ViewState | null>(null);
 
-  // Load initial data from Local Storage (Synchronous & Offline)
-  useEffect(() => {
-    setMembers(getMembers());
-    setArrears(getArrears());
-    setSchedules(getSchedules());
-  }, []);
+  // Data diload manual saat user klik "Gunakan Data Ini" atau setelah restore
 
   // Handlers for data mutation
   const handleAddMember = (newMember: Member) => {
@@ -234,11 +230,6 @@ const App: React.FC = () => {
             onBulkAddMembers={handleBulkAddMembers}
             onBulkAddArrears={handleBulkAddArrears}
             onToggleStatus={handleToggleMemberStatus}
-            onMemberClick={(id) => {
-              setInitialSelectedMemberId(id);
-              setReturnViewAfterDetail('MEMBERS');
-              setCurrentView('DASHBOARD');
-            }}
           />
         );
       case 'HISTORY':
@@ -274,7 +265,12 @@ const App: React.FC = () => {
           />
         );
       case 'BACKUP':
-        return <BackupView />;
+        return <BackupView onDatabaseLoaded={() => {
+          setMembers(getMembers());
+          setArrears(getArrears());
+          setSchedules(getSchedules());
+          setIsDatabaseLoaded(true);
+        }} />;
       default:
         return (
           <DashboardView 
@@ -293,7 +289,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout currentView={currentView} setView={setCurrentView} isDatabaseLoaded={members.length > 0}>
+    <Layout currentView={currentView} setView={setCurrentView} isDatabaseLoaded={isDatabaseLoaded}>
       {renderContent()}
     </Layout>
   );
