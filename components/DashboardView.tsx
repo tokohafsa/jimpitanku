@@ -428,7 +428,6 @@ export const DashboardView: React.FC<DashboardProps> = ({
       .filter(m => m.status === MemberStatus.ACTIVE)
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const EXTRA_ROWS = 4;
     const exportData = activeMembers.map((m, idx) => ({
       no: idx + 1, name: m.name, kosong: m.activeCount, nominal: m.activeAmountRp, isEmpty: m.activeCount === 0,
     }));
@@ -436,15 +435,6 @@ export const DashboardView: React.FC<DashboardProps> = ({
     const half = Math.ceil(exportData.length / 2);
     const leftCol  = exportData.slice(0, half);
     const rightCol: any[] = exportData.slice(half);
-    let extraNo = exportData.length + 1;
-    // Samakan panjang dulu, lalu tambah EXTRA_ROWS baris kosong
-    while (rightCol.length < leftCol.length) {
-      rightCol.push({ no: extraNo++, name: '', kosong: 0, nominal: 0, isEmpty: true });
-    }
-    for (let i = 0; i < EXTRA_ROWS; i++) {
-      leftCol.push({ no: '', name: '', kosong: 0, nominal: 0, isEmpty: true } as any);
-      rightCol.push({ no: extraNo++, name: '', kosong: 0, nominal: 0, isEmpty: true });
-    }
 
     const tableBody = leftCol.map((left, i) => {
       const right = rightCol[i] || { no: '', name: '', kosong: 0, nominal: 0, isEmpty: true };
@@ -493,7 +483,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
       ]],
       body: [...tableBody, totalRow],
       headStyles: { fillColor: WHITE, textColor: BLACK, fontStyle: 'bold', fontSize: 7.5, lineWidth: 0.3, lineColor: BLACK },
-      bodyStyles: { fontSize: 7, lineWidth: 0.25, lineColor: [160, 160, 160] },
+      bodyStyles: { fontSize: 7, lineWidth: 0.3, lineColor: [0, 0, 0] },
       columnStyles: {
         0: { cellWidth: 9,  halign: 'center' }, 1: { cellWidth: 36 },
         2: { cellWidth: 13, halign: 'center' }, 3: { cellWidth: 17, halign: 'right' }, 4: { cellWidth: 10 },
