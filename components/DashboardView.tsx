@@ -446,15 +446,15 @@ export const DashboardView: React.FC<DashboardProps> = ({
       const lBg = left.isEmpty ? GREEN : WHITE;
       const rBg = right.isEmpty ? GREEN : WHITE;
       return [
-        { content: left.no,     styles: { halign: 'center', fillColor: lBg, textColor: BLACK } },
+        { content: left.no,     styles: { halign: 'center' as const, fillColor: lBg, textColor: BLACK } },
         { content: left.name,   styles: { fillColor: lBg, textColor: BLACK } },
-        { content: left.kosong, styles: { halign: 'center', fillColor: lBg, textColor: BLACK } },
-        { content: left.nominal === 0 ? 0 : left.nominal.toLocaleString('id-ID'), styles: { halign: 'right', fillColor: lBg, textColor: BLACK } },
+        { content: left.kosong, styles: { halign: 'center' as const, fillColor: lBg, textColor: BLACK } },
+        { content: left.nominal === 0 ? 0 : left.nominal.toLocaleString('id-ID'), styles: { halign: 'right' as const, fillColor: lBg, textColor: BLACK } },
         { content: '',          styles: { fillColor: lBg } },
-        { content: right.no,   styles: { halign: 'center', fillColor: rBg, textColor: BLACK } },
+        { content: right.no,   styles: { halign: 'center' as const, fillColor: rBg, textColor: BLACK } },
         { content: right.name, styles: { fillColor: rBg, textColor: BLACK } },
-        { content: right.kosong, styles: { halign: 'center', fillColor: rBg, textColor: BLACK } },
-        { content: right.nominal === 0 ? 0 : right.nominal.toLocaleString('id-ID'), styles: { halign: 'right', fillColor: rBg, textColor: BLACK } },
+        { content: right.kosong, styles: { halign: 'center' as const, fillColor: rBg, textColor: BLACK } },
+        { content: right.nominal === 0 ? 0 : right.nominal.toLocaleString('id-ID'), styles: { halign: 'right' as const, fillColor: rBg, textColor: BLACK } },
         { content: '',          styles: { fillColor: rBg } },
       ];
     });
@@ -467,9 +467,9 @@ export const DashboardView: React.FC<DashboardProps> = ({
       { content: '', styles: { fillColor: WHITE } },
       { content: '', styles: { fillColor: GREY } },
       { content: '', styles: { fillColor: GREY } },
-      { content: 'TOTAL (KK)', styles: { halign: 'right', fontStyle: 'bold', fillColor: GREY, textColor: BLACK } },
+      { content: 'TOTAL (KK)', styles: { halign: 'right' as const, fontStyle: 'bold' as const, fillColor: GREY, textColor: BLACK } },
       { content: '', styles: { fillColor: GREY } },
-      { content: 'TERIMA', styles: { halign: 'center', fontStyle: 'bold', fillColor: GREY, textColor: BLACK } },
+      { content: 'TERIMA', styles: { halign: 'center' as const, fontStyle: 'bold' as const, fillColor: GREY, textColor: BLACK } },
     ];
 
     autoTable(doc, {
