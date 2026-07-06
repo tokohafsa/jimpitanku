@@ -421,7 +421,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
     doc.setFont('helvetica', 'normal');
     const sdTanggal = exportTanggal ? exportTanggal.toUpperCase() : '___________________';
     const tempat    = exportTempat  ? exportTempat.toUpperCase()  : '___________________';
-    doc.text(`S/D TANGGAL :  ${sdTanggal}`, 14, 19);
+    doc.text(`S/D TANGGAL :  ${sdTanggal}`, 18, 19);
     doc.text(`TMPT :  ${tempat}`, pageWidth / 2 + 5, 19);
 
     const activeMembers = memberStats
@@ -437,7 +437,12 @@ export const DashboardView: React.FC<DashboardProps> = ({
     const leftCol  = exportData.slice(0, half);
     const rightCol: any[] = exportData.slice(half);
     let extraNo = exportData.length + 1;
-    while (rightCol.length < leftCol.length + EXTRA_ROWS) {
+    // Samakan panjang dulu, lalu tambah EXTRA_ROWS baris kosong
+    while (rightCol.length < leftCol.length) {
+      rightCol.push({ no: extraNo++, name: '', kosong: 0, nominal: 0, isEmpty: true });
+    }
+    for (let i = 0; i < EXTRA_ROWS; i++) {
+      leftCol.push({ no: '', name: '', kosong: 0, nominal: 0, isEmpty: true } as any);
       rightCol.push({ no: extraNo++, name: '', kosong: 0, nominal: 0, isEmpty: true });
     }
 
@@ -496,7 +501,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
         7: { cellWidth: 13, halign: 'center' }, 8: { cellWidth: 17, halign: 'right' }, 9: { cellWidth: 10 },
       },
       theme: 'plain',
-      margin: { left: 10, right: 10 },
+      margin: { left: 18, right: 8 },
     });
 
     // HALAMAN 2: Batch Input Terakhir
@@ -537,7 +542,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
           10: { cellWidth: 22, halign: 'right' },
         },
         theme: 'striped',
-        margin: { left: 10, right: 10 },
+        margin: { left: 18, right: 8 },
       });
     }
 
