@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { getFullDatabase, restoreFullDatabase, getLastBackup, saveLastBackup } from '../services/storageService';
 import { Save, FolderOpen, Database, AlertCircle, CheckCircle, Info, FileText, ArrowRight } from 'lucide-react';
 
-export const BackupView: React.FC = () => {
+export const BackupView: React.FC<{ onDatabaseLoaded?: () => void }> = ({ onDatabaseLoaded }) => {
   const backupInputRef = useRef<HTMLInputElement>(null);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   
@@ -94,12 +94,12 @@ export const BackupView: React.FC = () => {
       restoreFullDatabase(restorePreview.rawData);
       setNotification({
         type: 'success',
-        message: 'Database berhasil dipulihkan! Halaman akan dimuat ulang...'
+        message: 'Database berhasil dipulihkan!'
       });
       setRestorePreview(null);
       setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+        if (onDatabaseLoaded) onDatabaseLoaded();
+      }, 1000);
     } catch (err) {
       setNotification({
         type: 'error',
@@ -189,6 +189,25 @@ export const BackupView: React.FC = () => {
 
       {/* GRID CONTAINER */}
       <div className="flex flex-col gap-6">
+
+        {/* Gunakan Data Tersimpan Card */}
+        {onDatabaseLoaded && (
+          <div className="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-6 flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-4">
+              <Database size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Gunakan Data Tersimpan</h3>
+            <p className="text-slate-500 text-sm mb-6 max-w-md">
+              Data dari sesi sebelumnya masih tersimpan di browser. Klik untuk langsung menggunakannya tanpa perlu upload file.
+            </p>
+            <button
+              onClick={onDatabaseLoaded}
+              className="w-full md:w-auto px-8 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={18} /> Gunakan Data Ini
+            </button>
+          </div>
+        )}
         
         {/* Restore Card */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center hover:border-orange-300 transition-colors w-full">

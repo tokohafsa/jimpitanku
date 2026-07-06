@@ -408,64 +408,103 @@ export const DashboardView: React.FC<DashboardProps> = ({
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
+    const GREEN  = [146, 208, 80]  as [number, number, number];
+    const WHITE  = [255, 255, 255] as [number, number, number];
+    const BLACK  = [0, 0, 0]       as [number, number, number];
+    const GREY   = [240, 240, 240] as [number, number, number];
 
-    // ── HALAMAN 1: Rekap Tunggakan ──
-    doc.setFontSize(13);
+    // HALAMAN 1: Rekap Tunggakan
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('REKAPAN JIMPITAN KOSONG RT 02', pageWidth / 2, 14, { align: 'center' });
-
+    doc.text('REKAPAN JIMPITAN KOSONG RT 02', pageWidth / 2, 12, { align: 'center' });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     const sdTanggal = exportTanggal ? exportTanggal.toUpperCase() : '___________________';
-    const tempat = exportTempat ? exportTempat.toUpperCase() : '___________________';
-    doc.text(`S/D TANGGAL : ${sdTanggal}`, 14, 20);
-    doc.text(`TMPT : ${tempat}`, pageWidth / 2 + 5, 20);
+    const tempat    = exportTempat  ? exportTempat.toUpperCase()  : '___________________';
+    doc.text(`S/D TANGGAL :  ${sdTanggal}`, 14, 19);
+    doc.text(`TMPT :  ${tempat}`, pageWidth / 2 + 5, 19);
 
-    const activeMembers = memberStats.filter(m => m.status === MemberStatus.ACTIVE).sort((a, b) => a.name.localeCompare(b.name));
+    const activeMembers = memberStats
+      .filter(m => m.status === MemberStatus.ACTIVE)
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-    const exportData = activeMembers.map((m, idx) => [
-      idx + 1,
-      m.name,
-      m.activeCount > 0 ? m.activeCount : 0,
-      m.activeAmountRp > 0 ? m.activeAmountRp.toLocaleString('id-ID') : 0,
-      ''
-    ]);
+    const EXTRA_ROWS = 4;
+    const exportData = activeMembers.map((m, idx) => ({
+      no: idx + 1, name: m.name, kosong: m.activeCount, nominal: m.activeAmountRp, isEmpty: m.activeCount === 0,
+    }));
 
     const half = Math.ceil(exportData.length / 2);
-    const leftCol = exportData.slice(0, half);
-    const rightCol = exportData.slice(half);
-    const tableRows = leftCol.map((left, i) => {
-      const right = rightCol[i] || ['', '', '', '', ''];
-      return [...left, ...right];
+    const leftCol  = exportData.slice(0, half);
+    const rightCol: any[] = exportData.slice(half);
+    let extraNo = exportData.length + 1;
+    while (rightCol.length < leftCol.length + EXTRA_ROWS) {
+      rightCol.push({ no: extraNo++, name: '', kosong: 0, nominal: 0, isEmpty: true });
+    }
+
+    const tableBody = leftCol.map((left, i) => {
+      const right = rightCol[i] || { no: '', name: '', kosong: 0, nominal: 0, isEmpty: true };
+      const lBg = left.isEmpty ? GREEN : WHITE;
+      const rBg = right.isEmpty ? GREEN : WHITE;
+      return [
+        { content: left.no,     styles: { halign: 'center', fillColor: lBg, textColor: BLACK } },
+        { content: left.name,   styles: { fillColor: lBg, textColor: BLACK } },
+        { content: left.kosong, styles: { halign: 'center', fillColor: lBg, textColor: BLACK } },
+        { content: left.nominal === 0 ? 0 : left.nominal.toLocaleString('id-ID'), styles: { halign: 'right', fillColor: lBg, textColor: BLACK } },
+        { content: '',          styles: { fillColor: lBg } },
+        { content: right.no,   styles: { halign: 'center', fillColor: rBg, textColor: BLACK } },
+        { content: right.name, styles: { fillColor: rBg, textColor: BLACK } },
+        { content: right.kosong, styles: { halign: 'center', fillColor: rBg, textColor: BLACK } },
+        { content: right.nominal === 0 ? 0 : right.nominal.toLocaleString('id-ID'), styles: { halign: 'right', fillColor: rBg, textColor: BLACK } },
+        { content: '',          styles: { fillColor: rBg } },
+      ];
     });
 
-    const totalKosong = activeMembers.reduce((sum, m) => sum + m.activeCount, 0);
-    const totalNominal = activeMembers.reduce((sum, m) => sum + m.activeAmountRp, 0);
+    const totalRow = [
+      { content: '', styles: { fillColor: WHITE } },
+      { content: '', styles: { fillColor: WHITE } },
+      { content: '', styles: { fillColor: WHITE } },
+      { content: '', styles: { fillColor: WHITE } },
+      { content: '', styles: { fillColor: WHITE } },
+      { content: '', styles: { fillColor: GREY } },
+      { content: '', styles: { fillColor: GREY } },
+      { content: 'TOTAL (KK)', styles: { halign: 'right', fontStyle: 'bold', fillColor: GREY, textColor: BLACK } },
+      { content: '', styles: { fillColor: GREY } },
+      { content: 'TERIMA', styles: { halign: 'center', fontStyle: 'bold', fillColor: GREY, textColor: BLACK } },
+    ];
 
     autoTable(doc, {
-      startY: 24,
-      head: [['No', 'Nama', 'Kosong', 'Nominal\n(x500)', 'Ket.', 'No', 'Nama', 'Kosong', 'Nominal\n(x500)', 'Ket.']],
-      body: [
-        ...tableRows,
-        [{ content: `TOTAL KOSONG: ${totalKosong}   TOTAL NOMINAL: Rp ${totalNominal.toLocaleString('id-ID')}`, colSpan: 10, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8 } }]
-      ],
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 7, lineWidth: 0.3, lineColor: [0, 0, 0] },
-      bodyStyles: { fontSize: 7, lineWidth: 0.2, lineColor: [180, 180, 180] },
+      startY: 23,
+      head: [[
+        { content: 'No.',    styles: { halign: 'center' } },
+        { content: 'Nama' },
+        { content: 'Kosong', styles: { halign: 'center' } },
+        { content: 'Nominal\n(x500)', styles: { halign: 'center' } },
+        { content: 'Ket.' },
+        { content: 'No.',    styles: { halign: 'center' } },
+        { content: 'Nama' },
+        { content: 'Kosong', styles: { halign: 'center' } },
+        { content: 'Nominal\n(x500)', styles: { halign: 'center' } },
+        { content: 'Ket.' },
+      ]],
+      body: [...tableBody, totalRow],
+      headStyles: { fillColor: WHITE, textColor: BLACK, fontStyle: 'bold', fontSize: 7.5, lineWidth: 0.3, lineColor: BLACK },
+      bodyStyles: { fontSize: 7, lineWidth: 0.25, lineColor: [160, 160, 160] },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 38 }, 2: { cellWidth: 13, halign: 'center' }, 3: { cellWidth: 18, halign: 'right' }, 4: { cellWidth: 10 },
-        5: { cellWidth: 8, halign: 'center' }, 6: { cellWidth: 38 }, 7: { cellWidth: 13, halign: 'center' }, 8: { cellWidth: 18, halign: 'right' }, 9: { cellWidth: 10 },
+        0: { cellWidth: 9,  halign: 'center' }, 1: { cellWidth: 36 },
+        2: { cellWidth: 13, halign: 'center' }, 3: { cellWidth: 17, halign: 'right' }, 4: { cellWidth: 10 },
+        5: { cellWidth: 9,  halign: 'center' }, 6: { cellWidth: 36 },
+        7: { cellWidth: 13, halign: 'center' }, 8: { cellWidth: 17, halign: 'right' }, 9: { cellWidth: 10 },
       },
-      theme: 'grid',
+      theme: 'plain',
       margin: { left: 10, right: 10 },
     });
 
-    // ── HALAMAN 2: Batch Input Terakhir ──
+    // HALAMAN 2: Batch Input Terakhir
     const batchHistory = getBatchHistory();
     if (batchHistory.length > 0) {
       doc.addPage();
-      const lastBatch = batchHistory[0]; // paling terakhir disimpan
+      const lastBatch = batchHistory[0];
       const batchDate = new Date(lastBatch.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('BATCH INPUT TERBARU', pageWidth / 2, 14, { align: 'center' });
@@ -474,13 +513,10 @@ export const DashboardView: React.FC<DashboardProps> = ({
       doc.text(`Tanggal Input: ${batchDate}`, 14, 21);
 
       const batchRows = lastBatch.details.map((d, idx) => [
-        idx + 1,
-        d.memberName,
+        idx + 1, d.memberName,
         ...(d.dailyUnits || Array(7).fill(0)).map(v => v > 0 ? v : '-'),
-        d.units,
-        `Rp ${d.amount.toLocaleString('id-ID')}`
+        d.units, `Rp ${d.amount.toLocaleString('id-ID')}`
       ]);
-
       const dayTotals = DAY_NAMES.map((_, i) => lastBatch.details.reduce((sum, d) => sum + (d.dailyUnits?.[i] || 0), 0));
 
       autoTable(doc, {
@@ -490,11 +526,10 @@ export const DashboardView: React.FC<DashboardProps> = ({
           ...batchRows,
           ['', 'TOTAL', ...dayTotals.map(v => v > 0 ? v : '-'), lastBatch.totalUnits, `Rp ${lastBatch.totalAmount.toLocaleString('id-ID')}`]
         ],
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
+        headStyles: { fillColor: [79, 70, 229], textColor: WHITE, fontSize: 7, fontStyle: 'bold' },
         bodyStyles: { fontSize: 7 },
         columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 35 },
+          0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 35 },
           2: { cellWidth: 12, halign: 'center' }, 3: { cellWidth: 12, halign: 'center' },
           4: { cellWidth: 12, halign: 'center' }, 5: { cellWidth: 12, halign: 'center' },
           6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 12, halign: 'center' },
@@ -526,7 +561,11 @@ export const DashboardView: React.FC<DashboardProps> = ({
       }
     });
     lines.push('');
-    lines.push('Harap dilunasi di pertemuan nanti malam. Terimakasih');
+    lines.push('Harap dilunasi di pertemuan nanti malam.');
+    lines.push('*Uang jimpitan tiap grup jaga dibawa/setorkan.*');
+    lines.push('Terimakasih');
+    lines.push('');
+    lines.push('sie Jimpitan');
 
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
