@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Member, Arrear, BatchRecord } from '../types';
 import { TableIcon, Save, ChevronLeft, ChevronRight, AlertCircle, CheckCircle, CalendarDays, Lock, Unlock, FileDown, History, Trash2 } from 'lucide-react';
-import { getBatchHistory, saveBatchHistory } from '../services/storageService';
+import { getBatchHistory, saveBatchHistory, getBatchMemberOrder, saveBatchMemberOrder } from '../services/storageService';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -35,6 +35,9 @@ export const BatchInputView: React.FC<BatchInputViewProps> = ({ members, onBulkA
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [batchHistory, setBatchHistory] = useState<BatchRecord[]>([]);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
+  const [memberOrder, setMemberOrder] = useState<Record<string, number>>({});
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [orderInputValue, setOrderInputValue] = useState<string>('');
   const [lockedDays, setLockedDays] = useState<Record<number, boolean>>({
     0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: true
   });
@@ -43,12 +46,14 @@ export const BatchInputView: React.FC<BatchInputViewProps> = ({ members, onBulkA
 
   useEffect(() => {
     setBatchHistory(getBatchHistory());
+    setMemberOrder(getBatchMemberOrder());
   }, []);
 
   const activeMembers = useMemo(() => 
     members
-      .filter(m => m.status === 'Aktif'), 
-    [members]
+      .filter(m => m.status === 'Aktif')
+      .sort((a, b) => (memberOrder[a.id] ?? 9999) - (memberOrder[b.id] ?? 9999)),
+    [members, memberOrder]
   );
 
   const dateLabel = useMemo(() => {
@@ -114,6 +119,30 @@ export const BatchInputView: React.FC<BatchInputViewProps> = ({ members, onBulkA
       ...prev,
       [dayIndex]: !prev[dayIndex]
     }));
+  };
+
+  const handleOrderEdit = (memberId: string, currentOrder: number | undefined) => {
+    setEditingOrderId(memberId);
+    setOrderInputValue(currentOrder !== undefined ? String(currentOrder) : '');
+  };
+
+  const handleOrderSave = (memberId: string) => {
+    const parsed = parseInt(orderInputValue, 10);
+    const updated = { ...memberOrder };
+    if (!isNaN(parsed) && parsed > 0) {
+      updated[memberId] = parsed;
+    } else {
+      delete updated[memberId];
+    }
+    setMemberOrder(updated);
+    saveBatchMemberOrder(updated);
+    setEditingOrderId(null);
+    setOrderInputValue('');
+  };
+
+  const handleOrderKeyDown = (e: React.KeyboardEvent, memberId: string) => {
+    if (e.key === 'Enter') handleOrderSave(memberId);
+    if (e.key === 'Escape') { setEditingOrderId(null); setOrderInputValue(''); }
   };
 
   // Link nama anggota hanya aktif jika semua hari masih terkunci (tidak ada yang sedang diedit)
@@ -342,8 +371,9 @@ export const BatchInputView: React.FC<BatchInputViewProps> = ({ members, onBulkA
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead className="sticky top-0 z-30">
                 <tr className="bg-slate-50">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 sticky left-0 top-0 bg-slate-50 z-40 border-b border-r border-slate-200 min-w-[160px]">
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 sticky left-0 top-0 bg-slate-50 z-40 border-b border-r border-slate-200 min-w-[200px]">
                     Nama Anggota
+                    <span className="ml-1 text-xs font-normal text-slate-400">(No. Rumah)</span>
                   </th>
                   {DAY_NAMES.map((day, i) => (
                     <th key={i} className="px-2 py-3 font-semibold text-slate-600 text-center min-w-[70px] bg-slate-50 border-b border-slate-200">
@@ -368,9 +398,36 @@ export const BatchInputView: React.FC<BatchInputViewProps> = ({ members, onBulkA
                       className={`${rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
                     >
                       <td className={`px-4 py-2.5 sticky left-0 z-20 border-b border-r border-slate-100 ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                        <span className="font-medium text-slate-700 truncate max-w-[140px] block">
-                          {member.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {editingOrderId === member.id ? (
+                            <input
+                              type="number"
+                              min="1"
+                              autoFocus
+                              value={orderInputValue}
+                              onChange={e => setOrderInputValue(e.target.value)}
+                              onBlur={() => handleOrderSave(member.id)}
+                              onKeyDown={e => handleOrderKeyDown(e, member.id)}
+                              className="w-12 text-center border border-indigo-400 rounded px-1 py-0.5 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              placeholder="No"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => handleOrderEdit(member.id, memberOrder[member.id])}
+                              className={`w-12 text-center text-xs font-bold rounded px-1 py-0.5 border transition-colors ${
+                                memberOrder[member.id]
+                                  ? 'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                                  : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
+                              }`}
+                              title="Klik untuk set nomor rumah"
+                            >
+                              {memberOrder[member.id] ?? '—'}
+                            </button>
+                          )}
+                          <span className="font-medium text-slate-700 truncate max-w-[120px]">
+                            {member.name}
+                          </span>
+                        </div>
                       </td>
                       {Array.from({ length: 7 }, (_, dayIndex) => (
                         <td key={dayIndex} className="px-2 py-2 text-center border-b border-slate-100">
