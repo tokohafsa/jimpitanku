@@ -81,7 +81,7 @@ export const getFullDatabase = () => {
 
 export const restoreFullDatabase = (data: any) => {
   if (!data || !Array.isArray(data.members) || !Array.isArray(data.arrears)) {
-    throw new Error('Format file backup tidak valid. Pastikan menggunakan file .json hasil backup aplikasi ini.');
+    throw new Error('Format file backup tidak valid. Pastikan menggunakan file database .json hasil backup aplikasi ini.');
   }
 
   saveMembers(data.members);
