@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { getFullDatabase, restoreFullDatabase, getLastBackup, saveLastBackup } from '../services/storageService';
+import { getFullDatabase, restoreFullDatabase } from '../services/storageService';
 import { Save, FolderOpen, Database, AlertCircle, CheckCircle, Info, FileText, ArrowRight } from 'lucide-react';
 
 export const BackupView: React.FC<{ onDatabaseLoaded?: () => void }> = ({ onDatabaseLoaded }) => {
