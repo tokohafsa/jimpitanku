@@ -5,7 +5,7 @@ const MEMBERS_KEY = 'IURAN_APP_MEMBERS_V2';
 const ARREARS_KEY = 'IURAN_APP_ARREARS_V2';
 const SCHEDULES_KEY = 'IURAN_APP_SCHEDULES_V1';
 const BATCH_HISTORY_KEY = 'IURAN_APP_BATCH_HISTORY_V1';
-const LAST_BACKUP_KEY = 'IURAN_APP_LAST_BACKUP_V1';
+const BATCH_MEMBER_ORDER_KEY = 'IURAN_APP_BATCH_MEMBER_ORDER_V1';
 
 export const getMembers = (): Member[] => {
   const data = localStorage.getItem(MEMBERS_KEY);
@@ -55,12 +55,14 @@ export const saveBatchHistory = (history: BatchRecord[]) => {
   localStorage.setItem(BATCH_HISTORY_KEY, JSON.stringify(history));
 };
 
-export const getLastBackup = (): string | null => {
-  return localStorage.getItem(LAST_BACKUP_KEY);
+export const getBatchMemberOrder = (): Record<string, number> => {
+  const data = localStorage.getItem(BATCH_MEMBER_ORDER_KEY);
+  if (!data) return {};
+  return JSON.parse(data);
 };
 
-export const saveLastBackup = (date: string) => {
-  localStorage.setItem(LAST_BACKUP_KEY, date);
+export const saveBatchMemberOrder = (order: Record<string, number>) => {
+  localStorage.setItem(BATCH_MEMBER_ORDER_KEY, JSON.stringify(order));
 };
 
 // --- NEW: BACKUP & RESTORE FUNCTIONS ---
@@ -71,6 +73,7 @@ export const getFullDatabase = () => {
     arrears: getArrears(),
     schedules: getSchedules(),
     batchHistory: getBatchHistory(),
+    batchMemberOrder: getBatchMemberOrder(),
     exportedAt: new Date().toISOString(),
     appVersion: '1.0'
   };
@@ -88,5 +91,8 @@ export const restoreFullDatabase = (data: any) => {
   }
   if (data.batchHistory && Array.isArray(data.batchHistory)) {
     saveBatchHistory(data.batchHistory);
+  }
+  if (data.batchMemberOrder && typeof data.batchMemberOrder === 'object' && !Array.isArray(data.batchMemberOrder)) {
+    saveBatchMemberOrder(data.batchMemberOrder);
   }
 };
