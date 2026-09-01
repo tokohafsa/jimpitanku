@@ -552,7 +552,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
       if (m.activeAmountRp > 0) {
         lines.push(`${idx + 1}. *Bpk. ${m.name} ${nominal}*`);
       } else {
-        lines.push(`${idx + 1}. _Bpk. ${m.name} Rp0_`);
+        lines.push(`${idx + 1}. _Bpk. ${m.name} Rp 0_`);
       }
     });
     lines.push('');
